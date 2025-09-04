@@ -636,6 +636,9 @@ void CProtocol::SendToClients(CPacket &packet, const SPClient &txclient, const C
 				{
 					const auto size = packet.GetSize();
 					packet.SetSize(size - 1);
+					#ifdef DEBUG
+					Dump("Shrunk PM data", packet.GetCData(), packet.GetSize());
+					#endif
 					client->SendPacket(packet);
 					packet.SetSize(size);
 				}
@@ -648,6 +651,9 @@ void CProtocol::SendToClients(CPacket &packet, const SPClient &txclient, const C
 					const auto size = packet.GetSize();
 					packet.SetSize(size + 1);
 					packet.GetData()[size] = uint8_t(mod);
+					#ifdef DEBUG
+					Dump("Expanded PM data", packet.GetCData(), packet.GetSize());
+					#endif
 					client->SendPacket(packet);
 					packet.SetSize(size);
 				}
