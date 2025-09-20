@@ -9,11 +9,14 @@ on:
     paths:
       - '.github/workflows/publish-docker-dashboard.yaml'
       - 'php-dash/**'
+    branches:
+      - "**"
+    tags:
+      - "v*.*.*"
   pull_request:
     paths:
       - '.github/workflows/publish-docker-dashboard.yaml'
       - 'php-dash/**'
-
 jobs:
   build-and-publish-dash:
     runs-on: ubuntu-latest
@@ -36,30 +39,25 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
-          flavor: |
-            latest=true
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image for mrefd-dash if on master
+      - name: Build and push Docker image for mrefd-dash
         uses: docker/build-push-action@v6
         with:
           context: ./php-dash
           file: ./php-dash/Containerfile
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
         if: github.ref == 'refs/heads/master'
-
-      - name: Build only Docker image for mrefd-dash if not on master
-        uses: docker/build-push-action@v6
-        with:
-          context: ./php-dash
-          file: ./php-dash/Containerfile
-          platforms: linux/amd64,linux/arm64
-          push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-        if: github.ref != 'refs/heads/master'

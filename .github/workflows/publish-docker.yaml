@@ -7,6 +7,10 @@ env:
 
 on:
   push:
+    branches:
+      - "**"
+    tags:
+      - "v*.*.*"
   pull_request:
 
 jobs:
@@ -31,31 +35,25 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
-          flavor: |
-            latest=true
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image for mrefd if on master
+      - name: Build and push Docker image for mrefd
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Containerfile
           platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-        if: github.ref != 'refs/heads/master'
-
-
-      - name: Build only Docker image for mrefd if not on master
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Containerfile
-          platforms: linux/amd64,linux/arm64
-          push: false
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
         if: github.ref != 'refs/heads/master'
